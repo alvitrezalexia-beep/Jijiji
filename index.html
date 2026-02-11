@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Búsqueda del Tesoro</title>
+    <style>
+        :root {
+            --primary: #ff6b6b;
+            --secondary: #4ecdc4;
+            --accent: #ffe66d;
+            --wall: #2f3640;
+        }
+        body { 
+            font-family: 'Arial', sans-serif; 
+            background: #f0f2f5; 
+            margin: 0; 
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+        .screen { 
+            display: none; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+            text-align: center; 
+            width: 100%;
+            max-width: 350px;
+            box-sizing: border-box;
+        }
+        .active { display: block; animation: zoomIn 0.3s; }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        button { 
+            background: var(--secondary); 
+            border: none; 
+            padding: 15px 25px; 
+            color: white; 
+            border-radius: 50px; 
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 10px;
+            touch-action: manipulation;
+        }
+
+        /* Laberinto */
+        #maze { 
+            display: grid; 
+            grid-template-columns: repeat(8, 1fr); 
+            gap: 2px; 
+            background: var(--wall); 
+            padding: 4px; 
+            margin: 15px auto; 
+            width: 280px;
+            height: 280px;
+        }
+        .cell { background: white; border-radius: 2px; display: flex; align-items: center; justify-content: center; }
+        .wall { background: var(--wall); }
+        .player { background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); }
+        .goal { background: var(--accent); font-size: 20px; }
+
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 150px; margin: 15px auto; }
+        .controls button { padding: 20px; margin: 0; background: #eee; color: #333; }
+
+        /* Sopa de Letras */
+        #wordsearch { 
+            display: grid; 
+            grid-template-columns: repeat(8, 1fr); 
+            gap: 4px; 
+            margin: 15px auto; 
+        }
+        .letter { 
+            aspect-ratio: 1;
+            border: 1px solid #ddd; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        .selected { background: var(--accent); border-color: orange; }
+
+        /* Cuestionario */
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: 2px solid #ddd; 
+            border-radius: 10px; 
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .star-btn { font-size: 60px; background: none; border: none; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        
+        #finalMessage { margin-top: 20px; background: #fff3cd; padding: 15px; border-radius: 10px; border: 2px dashed #ffc107; }
+    </style>
+</head>
+<body>
+
+    <div id="screen1" class="screen active">
+        <h2 style="color: var(--primary)">🎮 ¡Laberinto!</h2>
+        <p>Encuentra la llave para avanzar 🔑</p>
+        <div id="maze"></div>
+        <div class="controls">
+            <div></div><button onclick="movePlayer(-1, 0)">▲</button><div></div>
+            <button onclick="movePlayer(0, -1)">◀</button><button onclick="movePlayer(1, 0)">▼</button><button onclick="movePlayer(0, 1)">▶</button>
+        </div>
+        <div id="win1" style="display:none">
+            <h3 style="color: #f39c12;">✨ ¡GENIAL! ✨<br>⭐ Felicidad y Estrellas ⭐</h3>
+            <button onclick="nextScreen(2)">Siguiente</button>
+        </div>
+    </div>
+
+    <div id="screen2" class="screen">
+        <h2 style="color: var(--secondary)">🔎 Sopa de Letras</h2>
+        <p style="font-size: 13px;">Busca los nombres ocultos:</p>
+        <div id="wordsearch"></div>
+        <div id="win2" style="display:none">
+            <h3 style="color: #f39c12;">🔑 ¡Conseguiste la segunda llave!</h3>
+            <button onclick="nextScreen(3)">Siguiente</button>
+        </div>
+    </div>
+
+    <div id="screen3" class="screen">
+        <h2 style="color: #9b59b6;">📝 Cuestionario</h2>
+        <div style="text-align: left; font-size: 14px;">
+            <label>1. ¿Cuál es la comida favorita de alexia?</label>
+            <input type="text" id="q1">
+            
+            <label>2. ¿Cómo se llama el animal más hermoso del universo?</label>
+            <input type="text" id="q2">
+            
+            <label>3. ¿Cómo se llama tu comida favorita?</label>
+            <input type="text" id="q3">
+        </div>
+        <button onclick="checkQuiz()">Terminar</button>
+        <div id="win3" style="display:none; margin-top:15px;">
+            <p>🏆 ¡Felicidades conseguiste las 3 llaves!</p>
+            <p>Ahora podrás abrir el cofre del tesoro</p>
+            <button class="star-btn" onclick="nextScreen(4)">⭐</button>
+        </div>
+    </div>
+
+    <div id="screen4" class="screen">
+        <h2>🎁 EL COFRE</h2>
+        <div style="font-size: 30px; margin: 10px;">🔑 🔑 🔑</div>
+        <div id="chest" style="font-size: 80px; cursor: pointer;" onclick="openChest()">📦</div>
+        <div id="finalMessage" style="display:none">
+            <div style="background: #fff9c4; padding: 20px; border: 2px dashed #fbc02d; border-radius: 10px;">
+                <p style="font-size: 22px; font-weight: bold; margin: 5px 0;">Eres un soquetero soqueta</p>
+                <p style="font-size: 14px; color: #666;">jajaaa</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function nextScreen(num) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen' + num).classList.add('active');
+            if(num === 2) initWordSearch();
+        }
+
+        // --- Laberinto ---
+        const layout = [
+            [0,1,0,0,0,0,0,0],
+            [0,1,0,1,1,1,1,0],
+            [0,0,0,1,0,0,0,0],
+            [1,1,0,1,0,1,1,1],
+            [0,0,0,0,0,0,0,0],
+            [0,1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,0,0],
+            [1,1,1,1,0,0,0,2]
+        ];
+        let p = {r:0, c:0};
+        function drawMaze() {
+            const m = document.getElementById('maze');
+            m.innerHTML = '';
+            layout.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    const d = document.createElement('div');
+                    d.className = 'cell' + (cell===1?' wall':'') + (cell===2?' goal':'') + (p.r===r && p.c===c?' player':'');
+                    m.appendChild(d);
+                });
+            });
+        }
+        function movePlayer(dr, dc) {
+            let nr = p.r+dr, nc = p.c+dc;
+            if(nr>=0 && nr<8 && nc>=0 && nc<8 && layout[nr][nc]!==1) {
+                p = {r:nr, c:nc}; drawMaze();
+                if(layout[nr][nc]===2) document.getElementById('win1').style.display='block';
+            }
+        }
+        drawMaze();
+
+        // --- Sopa ---
+        function initWordSearch() {
+            const ws = document.getElementById('wordsearch');
+            const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            ws.innerHTML = '';
+            for(let i=0; i<64; i++) {
+                const l = document.createElement('div');
+                l.className = 'letter';
+                l.innerText = letters[Math.floor(Math.random()*letters.length)];
+                l.onclick = function() {
+                    this.classList.toggle('selected');
+                    // Al seleccionar varias letras se activa la llave (para fluidez en móvil)
+                    if(document.querySelectorAll('.selected').length > 10) 
+                        document.getElementById('win2').style.display='block';
+                };
+                ws.appendChild(l);
+            }
+        }
+
+        // --- Cuestionario ---
+        function checkQuiz() {
+            // Normalizamos las respuestas (minúsculas y sin espacios extras)
+            const a1 = document.getElementById('q1').value.toLowerCase().trim();
+            const a2 = document.getElementById('q2').value.toLowerCase().trim();
+            const a3 = document.getElementById('q3').value.toLowerCase().trim();
+            
+            if(a1 === "tallarines en salsa blanca" && a2 === "catalina" && a3 === "ají de gallina") {
+                document.getElementById('win3').style.display = 'block';
+            } else {
+                alert("Alguna respuesta es incorrecta. ¡Inténtalo de nuevo!");
+            }
+        }
+
+        // --- Final ---
+        function openChest() {
+            document.getElementById('chest').innerHTML = '🔓🎁';
+            document.getElementById('finalMessage').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
